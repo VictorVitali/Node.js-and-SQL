@@ -4,16 +4,16 @@ const usersRoutes = Router();
 const UsersController = require("../controllers/UsersControllers");
 const usersController = new UsersController();
 
-function myMiddleware(req, res, next) {
-    const {isAdmin} = req.body;
-    console.log(isAdmin);
+//function myMiddleware(req, res, next) {
+//    const {isAdmin} = req.body;
+//
+//   if(!req.body.isAdmin) {
+//        return res.json({ message: "user isnt a admin" });
+//    };
+//    next();
+//}
 
-    if(!req.body.isAdmin) {
-        return res.json({ message: "user isnt a admin" });
-    };
-    next();
-}
-
-usersRoutes.post("/",myMiddleware ,usersController.create);
+usersRoutes.post("/" ,usersController.create);
+usersRoutes.put("/:id", usersController.update);
 
 module.exports = usersRoutes;
