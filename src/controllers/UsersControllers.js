@@ -1,4 +1,4 @@
-const { hash } = require("bcryptjs");
+const { hash, compare } = require("bcryptjs");
 const sqliteConnections = require("../database/sqlite");
 const AppError = require("../utils/AppError");
 
@@ -36,30 +36,33 @@ class UsersController {
         ("SELECT * FROM users WHERE email = (?)",[email]);
 
         if (userWithUpadatedEmail && userWithUpadatedEmail.id !== user.id){
+            console.log(userWithUpadatedEmail.id);
+            console.log(user.id);
+
             throw new AppError("Email already used");
         }
 
-        user.name = name;
-        user.email = email;
+        user.name = name ?? user.name;
+        user.email = email ?? user.email;
 
-        await database.run
-        (`UPDATE users SET name = (?), email = (?), updated_at = (?) WHERE id = (?)`,
-        [user.name, user.email, new Date(), id]);
+
 
 
         if(password && !old_password){
             throw new AppError("Old password needed");
         }
         
-        const oldpassword = await database.get("SELECT * FROM users WHERE id = (?)", [id]);
-        if(old_password != oldpassword.password){
-            throw new AppError("Password invalid");
+        if(password && old_password){
+        const checkpassword = await compare(old_password, user.password);
+        if(!checkpassword){
+        throw new AppError("Password invalid");
         }
+        user.password = await hash(password, 8);
+    }
 
         await database.run
-        (`UPDATE users SET password = (?), updated_at = (?) WHERE id = (?)`,
-        [password, new Date(), id]);
-
+        (`UPDATE users SET name = (?), email = (?), password = (?), updated_at = DATETIME('now') WHERE id = (?)`,
+        [user.name, user.email, user.password, id]);
 
         return res.status(200).json();
 
