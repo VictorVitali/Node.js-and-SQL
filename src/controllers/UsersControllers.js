@@ -4,38 +4,38 @@ const AppError = require("../utils/AppError");
 
 class UsersController {
     async create(req, res) {
-        const { name , email , password } = req.body;
+        const { name, email, password } = req.body;
 
         const database = await sqliteConnections();
         const checkIfUserExists = await database.get("SELECT * FROM users WHERE email = (?)", [email])
-        if(checkIfUserExists) {
+        if (checkIfUserExists) {
             throw new AppError("User already exists")
         }
 
         const hashedPassword = await hash(password, 8);
 
-        await database.run("INSERT INTO users (email, name, password) VALUES (?, ?, ?)", 
-        [email, name, hashedPassword]);
+        await database.run("INSERT INTO users (email, name, password) VALUES (?, ?, ?)",
+            [email, name, hashedPassword]);
 
         return res.status(201).json();
 
 
     }
 
-    async update(req, res) {
-        const { name , email, password, old_password } = req.body;
-        const { id } = req.params;
+    async update(request, response) {
+        const { name, email, password, old_password } = request.body;
+        const user_id = request.user.id;
 
         const database = await sqliteConnections();
-        const user = await database.get("SELECT * FROM users WHERE id = (?)", [id]);
-        if (!user){
+        const user = await database.get("SELECT * FROM users WHERE id = (?)", [user_id]);
+        if (!user) {
             throw new AppError("User invalid");
         }
 
         const userWithUpadatedEmail = await database.get
-        ("SELECT * FROM users WHERE email = (?)",[email]);
+            ("SELECT * FROM users WHERE email = (?)", [email]);
 
-        if (userWithUpadatedEmail && userWithUpadatedEmail.id !== user.id){
+        if (userWithUpadatedEmail && userWithUpadatedEmail.id !== user.id) {
             console.log(userWithUpadatedEmail.id);
             console.log(user.id);
 
@@ -48,23 +48,23 @@ class UsersController {
 
 
 
-        if(password && !old_password){
+        if (password && !old_password) {
             throw new AppError("Old password needed");
         }
-        
-        if(password && old_password){
-        const checkpassword = await compare(old_password, user.password);
-        if(!checkpassword){
-        throw new AppError("Password invalid");
+
+        if (password && old_password) {
+            const checkpassword = await compare(old_password, user.password);
+            if (!checkpassword) {
+                throw new AppError("Password invalid");
+            }
+            user.password = await hash(password, 8);
         }
-        user.password = await hash(password, 8);
-    }
 
         await database.run
-        (`UPDATE users SET name = (?), email = (?), password = (?), updated_at = DATETIME('now') WHERE id = (?)`,
-        [user.name, user.email, user.password, id]);
+            (`UPDATE users SET name = (?), email = (?), password = (?), updated_at = DATETIME('now') WHERE id = (?)`,
+                [user.name, user.email, user.password, user_id]);
 
-        return res.status(200).json();
+        return response.status(200).json();
 
     }
 
